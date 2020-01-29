@@ -1,0 +1,48 @@
+[server]
+# IP to listen on (default: will listen on all addresses)
+host = 0.0.0.0
+# Port to listen on (default: 8013)
+port = 8013
+
+[log]
+# Log level from CRITICAL, ERROR, WARNING, INFO or DEBUG (default: WARNING)
+level = WARNING
+# Additional debug output from bottle (default: false)
+debug = false
+
+[fonts]
+# Use fonts installed to the system (default: true)
+system_fonts = true
+# Scan these paths for additional fonts (default: none)
+# Multiple paths are seperated by a colon
+additional_paths = /var/share/printuifonts,../additional_fonts/
+
+[printer]
+# Printer model (required)
+# Available models: https://github.com/pklaus/brother_ql/blob/master/brother_ql/models.py
+model = QL-500
+# Device identifier (default: file:///dev/usb/lp1)
+# Available protocols: file:///dev/lp1, usb://0x04f9:0x2015/000M6Z401370 or tcp://192.168.1.21:9100
+device = file:///dev/usb/lp1
+
+[defaults]
+# Default values for the web interface
+text =
+label_size = 62
+orientation = portrait
+font = Minion Pro:Semibold,Linux Libertine:Regular,DejaVu Serif:Book
+font_size = 100
+align = center
+margin_top = 24
+margin_bottom = 45
+margin_left = 35
+margin_right = 35
+copies = 1
+threshold = 70
+
+[website]
+# Path where bottle serves static files from (default: module path)
+#static_dir = static/
+# URL to load static files from
+# Only required if they are hosted independently
+#static_url = https://mycdn.example.com/content/static

@@ -1,0 +1,35 @@
+/* Webfont: Lato-Bold */@font-face {
+    font-family: 'Lato';
+    src: url('../webfonts/Lato-Bold.eot'); /* IE9 Compat Modes */
+    src: url('../webfonts/Lato-Bold.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+         url('../webfonts/Lato-Bold.woff2') format('woff2'), /* Modern Browsers */
+         url('../webfonts/Lato-Bold.woff') format('woff'), /* Modern Browsers */
+         url('../webfonts/Lato-Bold.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 700;
+    text-rendering: optimizeLegibility;
+}
+
+/* Webfont: Lato-Light */@font-face {
+    font-family: 'Lato';
+    src: url('../webfonts/Lato-Light.eot'); /* IE9 Compat Modes */
+    src: url('../webfonts/Lato-Light.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+         url('../webfonts/Lato-Light.woff2') format('woff2'), /* Modern Browsers */
+         url('../webfonts/Lato-Light.woff') format('woff'), /* Modern Browsers */
+         url('../webfonts/Lato-Light.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 300;
+    text-rendering: optimizeLegibility;
+}
+
+/* Webfont: Lato-Regular */@font-face {
+    font-family: 'Lato';
+    src: url('../webfonts/Lato-Regular.eot'); /* IE9 Compat Modes */
+    src: url('../webfonts/Lato-Regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+         url('../webfonts/Lato-Regular.woff2') format('woff2'), /* Modern Browsers */
+         url('../webfonts/Lato-Regular.woff') format('woff'), /* Modern Browsers */
+         url('../webfonts/Lato-Regular.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 400;
+    text-rendering: optimizeLegibility;
+}

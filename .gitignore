@@ -1,0 +1,7 @@
+/env
+/build
+/dist
+/printui.egg-info
+/__pycache__
+*.py[cdo]
+/printui.conf
