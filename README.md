@@ -17,6 +17,10 @@ fontconfig
 
 [fontconfig](https://github.com/ldo/python_fontconfig) is currently not available on pypi but can be installed with `pip install 'git+https://github.com/ldo/python_fontconfig.git@v0.7#egg=fontconfig'`. The *fontconfig* python library also needs the *libfontconfig* installed on your system.
 
+### Usage
+
+Running `python setup.py install` will install the command `printui`. Executing `printui` will try to find a device automatically and start a webserver on port 8080. A configuration file can be specified with `-d <config>`.
+
 ### License
 
 This software is published under the terms of the GPLv3, see the LICENSE file in the repository.

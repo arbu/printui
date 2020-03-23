@@ -5,7 +5,6 @@ This is a web service to print labels on Brother QL label printers.
 """
 
 import sys
-import os
 import logging
 import random
 import json
@@ -13,6 +12,7 @@ import configparser
 import argparse
 import io
 import base64
+import functools
 
 import PIL.ImageFont
 import PIL.ImageDraw
@@ -21,10 +21,9 @@ import fontconfig
 import pkg_resources
 
 import brother_ql.conversion
-import brother_ql.backends
 import brother_ql.raster
-import brother_ql.models
-import brother_ql.labels
+
+from .printer import PrinterDevice, PrinterError
 
 TEMPLATE_DIR = [pkg_resources.resource_filename(__name__, 'views')]
 
@@ -36,7 +35,7 @@ CONFIG_DEFAULTS = {
     'server': {
         },
     'logging': {
-        'level': 'WARNING',
+        'level': 'INFO',
         'debug': 'false',
         },
     'fonts': {
@@ -44,11 +43,11 @@ CONFIG_DEFAULTS = {
         'additional_paths': '',
         },
     'printer': {
-        'device': 'file:///dev/usb/lp1',
+        'discover': 'linux_kernel,pyusb',
         },
     'defaults': {
         'text': '',
-        'label_size': '62',
+        'label_size': 'auto',
         'orientation': 'portrait',
         'font': 'Minion Pro:Semibold,Linux Libertine:Regular,DejaVu Serif:Book',
         'font_size': '100',
@@ -81,10 +80,32 @@ PARAMETER_TYPES = {
     'margin_right':  float,
     }
 
-MODELS_MANAGER = brother_ql.models.ModelsManager()
-LABELS_MANAGER = brother_ql.labels.LabelsManager()
-
 LOGGER = logging.getLogger(__name__)
+
+def exception_to_json(func):
+    """
+    Wrapper for all API endpoints that catches exeptions and instead
+    returns a dict that will be converted to JSON
+    """
+    @functools.wraps(func)
+    def wrapper_decorator(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+
+        except PrinterError as e:
+            messages = [error.description for error in e.errors]
+            LOGGER.warning('Printer returned an error: %s', ','.join(messages))
+            return {'success': False, 'messages': messages}
+
+        except Exception as e:
+            LOGGER.error('Request failed with unhandled exception', exc_info=e)
+            if isinstance(e, OSError):
+                message = 'Failed to connect to printer.'
+            else:
+                message = repr(e)
+            return {'success': False, 'messages': [message]}
+    return wrapper_decorator
+
 
 @bottle.route('/')
 def index():
@@ -97,16 +118,12 @@ def serve_static(filename):
 @bottle.route('/designer')
 @bottle.jinja2_view('designer', template_lookup=TEMPLATE_DIR)
 def labeldesigner():
-    font_info = [(index, font[1], font[2]) for index, font in enumerate(FONTS)]
-    label_sizes_by_name = [(label.identifier, label.name) for label in brother_ql.labels.ALL_LABELS]
-    return {'font_info':    json.dumps(font_info),
-            'label_sizes':  label_sizes_by_name,
-            'static_url':   WEBSITE['static_url'],
-            'defaults':     DEFAULTS,
-            }
+    return {'static_url': WEBSITE['static_url']}
 
-def render_image(request):
-    """ might raise LookupError() """
+def render_image(request, printer = None):
+    """
+    Common function to render a label for preview and printing
+    """
 
     param_types = {
         'text':          str,
@@ -133,12 +150,23 @@ def render_image(request):
     for margin in ('margin_top', 'margin_bottom', 'margin_left', 'margin_right'):
         context[margin] = int(context['font_size'] * (context[margin] / 100.))
 
-    for label in brother_ql.labels.ALL_LABELS:
-        if label.identifier == context['label_size']:
-            label_type = label
-            break
-    else: # no label did match
-        raise LookupError("Unknown label_size")
+    if context['label_size'] == 'auto':
+        if not printer:
+            with PrinterDevice(DEVICE) as printer_instance:
+                label = printer_instance.info()[1]
+        else:
+            label = printer.info()[1]
+        if not label:
+            context['image'] = PIL.Image.new('L', (1, 1), 'white')
+            return context
+        context['label_size'] = label.identifier
+    else:
+        for label_item in brother_ql.labels.ALL_LABELS:
+            if label_item.identifier == context['label_size']:
+                label = label_item
+                break
+        else: # no label did match
+            raise LookupError("Unknown label_size: {}".format(context['label_size']))
 
     if context['copies'] < 1 or context['copies'] > 20:
         raise ValueError("The number of copies is limited to 20.")
@@ -146,7 +174,8 @@ def render_image(request):
     try:
         font_path = FONTS[context['font_index']][0]
     except KeyError:
-        raise LookupError("Couln't find the font")
+        raise LookupError("Couln't find the font with index {}"\
+                .format(context['font_index']))
 
     im_font = PIL.ImageFont.truetype(font_path, context['font_size'])
 
@@ -163,12 +192,12 @@ def render_image(request):
     (text_width, text_height) = draw.multiline_textsize(text, font=im_font)
 
     if context['orientation'] == 'landscape':
-        (height, width) = label_type.dots_printable
-        if label_type.form_factor in ENDLESS_LABELS:
+        (height, width) = label.dots_printable
+        if label.form_factor in ENDLESS_LABELS:
             width = text_width + context['margin_left'] + context['margin_right']
     elif context['orientation'] == 'portrait':
-        (width, height) = label_type.dots_printable
-        if label_type.form_factor in ENDLESS_LABELS:
+        (width, height) = label.dots_printable
+        if label.form_factor in ENDLESS_LABELS:
             height = text_height + context['margin_top'] + context['margin_bottom']
     else:
         raise ValueError("Invalid value for parameter 'orientation'. Must " +\
@@ -177,7 +206,7 @@ def render_image(request):
     vertical_offset = (height - text_height + context['margin_top'] - context['margin_bottom']) // 2
     horizontal_offset = max((width - text_width) // 2, 0)
 
-    if label_type.form_factor in ENDLESS_LABELS:
+    if label.form_factor in ENDLESS_LABELS:
         if context['orientation'] == 'landscape':
             vertical_offset = context['margin_top']
         else:
@@ -188,7 +217,7 @@ def render_image(request):
     draw.multiline_text((horizontal_offset, vertical_offset), text, (0), \
                         font=im_font, align=context['align'])
 
-    if label_type.form_factor in ENDLESS_LABELS:
+    if label.form_factor in ENDLESS_LABELS:
         if context['orientation'] == 'portrait':
             context['rotate'] = 0
         else:
@@ -198,9 +227,30 @@ def render_image(request):
 
     return context
 
-@bottle.get('/api/preview/text')
-@bottle.post('/api/preview/text')
-def get_preview_image():
+@bottle.route('/api/text/preview', method=['GET', 'POST'])
+@exception_to_json
+def api_text_preview():
+    """
+    API to generate a preview image
+
+    parameters: text:str             Label text
+                font_size:int        Font size in points
+                font_index:int       Font index as returned by /api/config
+                label_size:str       Label size as returned by /api/config
+                threshold:int        Threshold for black and white conversion
+                align:str            "left", "center" or "right"
+                orientation:str      "landscape" or "portrait"
+                copies:int           Number of copies to print
+                margin_top:float     Text margin in pixels
+                margin_bottom:float  Text margin in pixels
+                margin_left:float    Text margin in pixels
+                margin_right:float   Text margin in pixels
+                return_format:str    "png" or "json"
+
+    returns: PNG or JSON depending on return_format parameter
+    """
+    return_format = bottle.request.query.get('return_format', 'png')
+
     context = render_image(bottle.request)
 
     image_buffer = io.BytesIO()
@@ -209,50 +259,112 @@ def get_preview_image():
 
     image_buffer.seek(0)
 
-    return_format = bottle.request.query.get('return_format', 'png')
-    if return_format == 'base64':
-        bottle.response.set_header('Content-type', 'text/plain')
-        return base64.b64encode(image_buffer.read())
-    else:
+    if return_format == 'json':
+        return {
+            'success': True,
+            'image': base64.b64encode(image_buffer.read()).decode('utf-8'),
+            }
+    if return_format == 'png':
         bottle.response.set_header('Content-type', 'image/png')
         return image_buffer.read()
 
-@bottle.post('/api/print/text')
-@bottle.get('/api/print/text')
-def print_text():
+    return {
+        'success': False,
+        'messages': ['Value for return_format not recognised. Must be one of "png" or "json"'],
+        }
+
+@bottle.route('/api/text/print', method=['GET', 'POST'])
+@exception_to_json
+def api_text_print():
     """
-    API to print a label
+    API to send a print job
+
+    parameters: text:str             Label text
+                font_size:int        Font size in points
+                font_index:int       Font index as returned by /api/config
+                label_size:str       Label size as returned by /api/config
+                threshold:int        Threshold for black and white conversion
+                align:str            "left", "center" or "right"
+                orientation:str      "landscape" or "portrait"
+                copies:int           Number of copies to print
+                margin_top:float     Text margin in pixels
+                margin_bottom:float  Text margin in pixels
+                margin_left:float    Text margin in pixels
+                margin_right:float   Text margin in pixels
 
     returns: JSON
-
-    Ideas for additional URL parameters:
-    - alignment
     """
+    with PrinterDevice(DEVICE) as printer:
+        context = render_image(bottle.request, printer)
 
-    context = render_image(bottle.request)
+        (model, label) = printer.info()
 
-    raster = brother_ql.raster.BrotherQLRaster(PRINTER['model'])
+        if not label:
+            return {'success': False, 'messages': ["No label in printer."]}
 
-    brother_ql.conversion.convert(raster, [context['image']] * context['copies'],
-            context['label_size'], threshold=context['threshold'], cut=True,
-            rotate=context['rotate'])
+        if label.identifier != context['label_size']:
+            return {'success': False, 'messages': ["Wrong label size."]}
 
-    try:
-        backend = BACKEND_CLASS(PRINTER['device'])
-        backend.write(raster.data)
-        backend.dispose()
-        del backend
-    except Exception as e:
-        LOGGER.warning('Exception happened: %s', e)
-        return {'success': False, 'message': str(e)}
+        qlr = brother_ql.raster.BrotherQLRaster(model.identifier)
+
+        # convert will call add_status_information which we don't need
+        # overriding this, so it has no effect
+        qlr.add_status_information = lambda: None
+
+        brother_ql.conversion.convert(
+            qlr=qlr,
+            images=[context['image']] * context['copies'],
+            label=label.identifier,
+            threshold=context['threshold'],
+            cut=True,
+            rotate=context['rotate'],
+            )
+
+        printer.print(qlr)
 
     return {'success': True}
 
+@bottle.route('/api/config')
+@exception_to_json
+def api_config():
+    """
+    API to query the printer server config (fonts, label sizes, default values)
+
+    parameter: none
+
+    returns: JSON
+    """
+    return {
+        'success': True,
+        'fonts': [(index, font[1], font[2]) for index, font in enumerate(FONTS)],
+        'label_sizes': [(label.identifier, label.name) for label in brother_ql.labels.ALL_LABELS],
+        'default_values': dict(DEFAULTS),
+        }
+
+@bottle.route('/api/status')
+@exception_to_json
+def api_status():
+    """
+    API to query the printer status (label size, errors)
+
+    parameter: none
+
+    returns: JSON
+    """
+    with PrinterDevice(DEVICE) as printer:
+        (model, label) = printer.info()
+
+    return {
+        'success': True,
+        'model': model.identifier,
+        'label': label.identifier if label else None,
+        }
+
 def main():
-    global BACKEND_CLASS, FONTS, DEFAULT_FONT, WEBSITE, DEFAULTS, PRINTER
+    global FONTS, DEFAULT_FONT, WEBSITE, DEFAULTS, DEVICE
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-c', '--config', default='printui.conf',
+    parser.add_argument('-c', '--config', nargs='?',
                         help="Configuration file to load.")
     parser.add_argument('-d', '--debug', action='store_true',
                         help="Set loglevel to debug and enable additional output.")
@@ -260,14 +372,9 @@ def main():
 
     config = configparser.ConfigParser()
     config.read_dict(CONFIG_DEFAULTS)
-    with open(args.config) as conf_file:
-        config.read_file(conf_file)
-
-    WEBSITE = config['website']
-
-    DEFAULTS = config['defaults']
-
-    PRINTER = config['printer']
+    if args.config is not None:
+        with open(args.config) as conf_file:
+            config.read_file(conf_file)
 
     if args.debug:
         loglevel = 'DEBUG'
@@ -279,40 +386,38 @@ def main():
         sys.stderr.write("Unsupported log level: {}\n".format(loglevel))
         sys.exit(2)
 
-    try:
-        selected_backend = brother_ql.backends.guess_backend(PRINTER['device'])
-    except ValueError:
-        parser.error("Couldn't guess the backend to use from the printer string descriptor")
+    WEBSITE = config['website']
 
-    BACKEND_CLASS = brother_ql.backends.backend_factory(selected_backend)['backend_class']
+    DEFAULTS = config['defaults']
 
-    if DEFAULTS['label_size'] not in LABELS_MANAGER.iter_identifiers():
-        parser.error("Invalid default_size. Please choose on of the " + \
-                     "following:\n:" + " ".join(LABELS_MANAGER.iter_identifier()))
+    DEVICE = config['printer'].get('device')
 
-    if 'model' not in PRINTER:
-        sys.stderr.write("No model specified. Please specify one in the configuration.\n")
-        sys.exit(2)
+    if not DEVICE:
+        devices_found = []
+        for backend in config['printer']['discover'].split(','):
+            factory = brother_ql.backends.backend_factory(backend.strip())
+            devices_found += factory['list_available_devices']()
 
-    if PRINTER['model'] not in MODELS_MANAGER.iter_identifiers():
-        sys.stderr.write("The specified model is unknown. The following models are available:\n")
-        for model in MODELS_MANAGER.iter_identifiers():
-            sys.stderr.write("    {}\n".format(model.name))
-        sys.exit(2)
+        if not devices_found:
+            LOGGER.critical("No device specified and discovery failed. Exiting!")
+            sys.exit(2)
+
+        DEVICE = devices_found[0]['identifier']
+        LOGGER.info("No device specified. Selecting %s", DEVICE)
 
     if config['fonts'].getboolean('system_fonts'):
-        fc = fontconfig.Config.get_current()
+        fontconfig_instance = fontconfig.Config.get_current()
     else:
-        fc = fontconfig.Config.create()
+        fontconfig_instance = fontconfig.Config.create()
 
     for folder in config['fonts']['additional_paths'].split(','):
         if folder.strip():
-            fc.app_font_add_dir(folder)
+            fontconfig_instance.app_font_add_dir(folder)
 
     props_to_query = (fontconfig.PROP.FILE, fontconfig.PROP.FAMILY, fontconfig.PROP.STYLE)
 
     FONTS = []
-    for font in fc.font_list(fontconfig.Pattern.create(), props_to_query):
+    for font in fontconfig_instance.font_list(fontconfig.Pattern.create(), props_to_query):
         FONTS.append(tuple(font.get(prop, 0)[0] or '' for prop in props_to_query))
 
     if not FONTS:
@@ -327,7 +432,7 @@ def main():
 
     for default_font in DEFAULTS['font'].split(','):
         (default_family, default_style) = default_font.split(":")
-        for i, (file, family, style) in enumerate(FONTS):
+        for i, (path, family, style) in enumerate(FONTS):
             if default_family == family and default_style == style:
                 default_font_index = i
                 break

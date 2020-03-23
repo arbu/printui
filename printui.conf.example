@@ -18,17 +18,16 @@ system_fonts = true
 additional_paths = /var/share/printuifonts,../additional_fonts/
 
 [printer]
-# Printer model (required)
-# Available models: https://github.com/pklaus/brother_ql/blob/master/brother_ql/models.py
-model = QL-500
-# Device identifier (default: file:///dev/usb/lp1)
+# Device identifier (default: auto discovery)
 # Available protocols: file:///dev/lp1, usb://0x04f9:0x2015/000M6Z401370 or tcp://192.168.1.21:9100
-device = file:///dev/usb/lp1
+#device = file:///dev/usb/lp1
+# Backends to use for auto discovery, in this order (default: linux_kernel,pyusb)
+discover = linux_kernel,pyusb
 
 [defaults]
 # Default values for the web interface
 text =
-label_size = 62
+label_size = auto
 orientation = portrait
 font = Minion Pro:Semibold,Linux Libertine:Regular,DejaVu Serif:Book
 font_size = 100
