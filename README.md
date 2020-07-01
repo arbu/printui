@@ -19,7 +19,7 @@ fontconfig
 
 ### Usage
 
-Running `python setup.py install` will install the command `printui`. Executing `printui` will try to find a device automatically and start a webserver on port 8080. A configuration file can be specified with `-d <config>`.
+Running `python setup.py install` will install the command `printui`. Executing `printui` will try to find a device automatically and start a webserver on port 8080. A configuration file can be specified with `-c <config>`.
 
 ### License
 

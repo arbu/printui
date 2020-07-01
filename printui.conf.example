@@ -14,7 +14,7 @@ debug = false
 # Use fonts installed to the system (default: true)
 system_fonts = true
 # Scan these paths for additional fonts (default: none)
-# Multiple paths are seperated by a colon
+# Multiple paths are seperated by a comma
 additional_paths = /var/share/printuifonts,../additional_fonts/
 
 [printer]
