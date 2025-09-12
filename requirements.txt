@@ -1,0 +1,6 @@
+setuptools
+bottle
+jinja2
+Pillow
+brother_ql
+fontconfig @ git+https://gitlab.com/ldo/python_fontconfig.git@v0.7

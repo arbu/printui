@@ -1,38 +1,31 @@
-[build-system]
-requires = ["setuptools >= 77.0.3"]
-build-backend = "setuptools.build_meta"
-
-# Core metadata
-# https://packaging.python.org/en/latest/specifications/pyproject-toml/#declaring-project-metadata-the-project-table
 [project]
 name = "printui"
-version = "0.1"
 description = "Webinterface to talk to Brother QL label printers. Fork of brother_ql_web"
 readme = "README.md"
+license = "GPL-3.0-or-later"
+
+dynamic = ["dependencies"]
+version = "0.1"
+requires-python = ">= 3.11"
+
 authors = [
     { name = "Philipp Klaus" },
     { name = "Aaron Bulmahn", email = "arbudev@gmail.com" },
 ]
-urls.homepage = "https://github.com/arbu/printui"
-license = "GPL-3.0-or-later"
-scripts.printui = "printui:main"
-dependencies = [
-    "setuptools",
-    "bottle",
-    "jinja2",
-    "Pillow",
-    "brother_ql",
-    "fontconfig",
-]
 
-# Additional configuration of setuptools
-# https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
+[project.urls]
+Homepage = "https://github.com/arbu/printui"
+
+[project.scripts]
+printui = "printui:main"
+
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
 [tool.setuptools]
 packages = ["printui"]
-# TODO setuptools advises to use namespace packages instead of plain subdirectories
-#      https://setuptools.pypa.io/en/latest/userguide/datafiles.html#subdirectory-for-data-files
-package-data = { printui = ["static/*/*", "views/*"] }
-platforms = ["any"]
-# TODO The following options are obsolete, deprecated or discouraged
-data-files = { "" = ["printui.conf.example"] }
-zip-safe = true
+package-data.printui = ["static/*/*", "views/*"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
