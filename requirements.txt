@@ -1,4 +1,3 @@
-setuptools
 bottle
 jinja2
 Pillow

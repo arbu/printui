@@ -7,25 +7,24 @@ This is a web service to print labels on Brother QL label printers.
 import sys
 import logging
 import random
-import json
 import configparser
 import argparse
 import io
 import base64
 import functools
+import importlib.resources
 
 import PIL.ImageFont
 import PIL.ImageDraw
 import bottle
 import fontconfig
-import pkg_resources
 
 import brother_ql.conversion
 import brother_ql.raster
 
 from .printer import PrinterDevice, PrinterError
 
-TEMPLATE_DIR = [pkg_resources.resource_filename(__name__, 'views')]
+TEMPLATE_DIR = [importlib.resources.files(__package__).joinpath('views')]
 
 ENDLESS_LABELS = (brother_ql.labels.FormFactor.ENDLESS, )
 if hasattr(brother_ql.labels.FormFactor, "PTOUCH_ENDLESS"):
@@ -60,7 +59,7 @@ CONFIG_DEFAULTS = {
         'threshold': '70',
         },
     'website': {
-        'static_dir': pkg_resources.resource_filename(__name__, 'static'),
+        'static_dir': importlib.resources.files(__package__).joinpath('static'),
         'static_url': '/static',
         },
     }
