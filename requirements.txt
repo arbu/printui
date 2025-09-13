@@ -3,4 +3,4 @@ bottle
 jinja2
 Pillow
 brother_ql
-fontconfig @ git+https://gitlab.com/ldo/python_fontconfig.git@v0.7
+fontconfig @ https://gitlab.com/ldo/python_fontconfig/-/archive/v0.7/python_fontconfig-v0.7.zip?ref_type=tags
