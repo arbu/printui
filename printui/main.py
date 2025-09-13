@@ -188,7 +188,8 @@ def render_image(request, printer = None):
         lines.append(line or ' ')
     text = '\n'.join(lines)
 
-    (text_width, text_height) = draw.multiline_textsize(text, font=im_font)
+    bbox = draw.multiline_textbbox((0, 0), text, font=im_font)
+    text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
 
     if context['orientation'] == 'landscape':
         (height, width) = label.dots_printable
