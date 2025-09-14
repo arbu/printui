@@ -171,10 +171,10 @@ $.ajax({
 
         updateFontStyles();
 
-        $('input:radio[name=orientation]').val(data.default_values.orientation);
+        $('input:radio[name=orientation]').val([data.default_values.orientation]);
         $('#fontStyle').val(data.default_values.font_index);
         $('#fontSize').val(data.default_values.font_size);
-        $('input:radio[name=fontAlign]').val(data.default_values.align);
+        $('input:radio[name=fontAlign]').val([data.default_values.align]);
         $('#marginTop').val(data.default_values.margin_top);
         $('#marginLeft').val(data.default_values.margin_left);
         $('#marginRight').val(data.default_values.margin_right);

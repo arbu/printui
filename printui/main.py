@@ -4,6 +4,7 @@
 This is a web service to print labels on Brother QL label printers.
 """
 
+import math
 import sys
 import logging
 import random
@@ -188,8 +189,11 @@ def render_image(request, printer = None):
         lines.append(line or ' ')
     text = '\n'.join(lines)
 
-    bbox = draw.multiline_textbbox((0, 0), text, font=im_font)
-    text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    bbox = draw.multiline_textbbox((0, 0), text, font=im_font, align=context['align'])
+    text_width, text_height = math.ceil(bbox[2] - bbox[0]), math.ceil(bbox[3] - bbox[1])
+    # move anchor to make image start in the top right corner, and add margins
+    horizontal_offset = -bbox[0] + context['margin_left']
+    vertical_offset = -bbox[1] + context['margin_top']
 
     if context['orientation'] == 'landscape':
         (height, width) = label.dots_printable
