@@ -32,6 +32,7 @@ orientation = portrait
 font = Minion Pro:Semibold,Linux Libertine:Regular,DejaVu Serif:Book
 font_size = 100
 align = center
+align_vertical = center
 margin_top = 24
 margin_bottom = 45
 margin_left = 35

@@ -29,17 +29,18 @@ function onPrinterResponse(data) {
 
 function formData() {
     return {
-        text:        $('#labelText').val(),
-        font_index:  $('#fontStyle option:selected').val(),
-        font_size:   $('#fontSize').val(),
-        label_size:  $('#labelSize option:selected').val(),
-        align:       $('input[name=fontAlign]:checked').val(),
-        orientation: $('input[name=orientation]:checked').val(),
-        copies:      $('#copies').val(),
-        margin_top:    $('#marginTop').val(),
-        margin_bottom: $('#marginBottom').val(),
-        margin_left:   $('#marginLeft').val(),
-        margin_right:  $('#marginRight').val()
+        text:           $('#labelText').val(),
+        font_index:     $('#fontStyle option:selected').val(),
+        font_size:      $('#fontSize').val(),
+        label_size:     $('#labelSize option:selected').val(),
+        align:          $('input:radio[name=fontAlign]:checked').val(),
+        align_vertical: $('input:radio[name=alignVertical]:checked').val(),
+        orientation:    $('input:radio[name=orientation]:checked').val(),
+        copies:         $('#copies').val(),
+        margin_top:     $('#marginTop').val(),
+        margin_bottom:  $('#marginBottom').val(),
+        margin_left:    $('#marginLeft').val(),
+        margin_right:   $('#marginRight').val()
     }
 }
 
@@ -175,6 +176,7 @@ $.ajax({
         $('#fontStyle').val(data.default_values.font_index);
         $('#fontSize').val(data.default_values.font_size);
         $('input:radio[name=fontAlign]').val([data.default_values.align]);
+        $('input:radio[name=alignVertical]').val([data.default_values.align_vertical]);
         $('#marginTop').val(data.default_values.margin_top);
         $('#marginLeft').val(data.default_values.margin_left);
         $('#marginRight').val(data.default_values.margin_right);
