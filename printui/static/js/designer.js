@@ -133,6 +133,7 @@ function updateFontStyles() {
     if(old_style) {
         $('#fontStyle option[text="Regular"]').attr("selected", "selected");
     }
+    preview();
 }
 
 $.ajax({
