@@ -45,13 +45,6 @@ function formData() {
 }
 
 function preview() {
-    if ($('input[name=orientation]:checked').val() == 'portrait') {
-        $('.marginsTopBottom').prop('disabled', false).removeAttr('title');
-        $('.marginsLeftRight').prop('disabled', true).prop('title',  'Only relevant if landscape orientation is selected.');
-    } else {
-        $('.marginsTopBottom').prop('disabled', true).prop('title',  'Only relevant if portrait orientation is selected.');
-        $('.marginsLeftRight').prop('disabled', false).removeAttr('title');
-    }
     $.ajax({
         type:        'POST',
         url:         '/api/text/preview?return_format=json',
