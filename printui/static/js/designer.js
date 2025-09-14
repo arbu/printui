@@ -1,4 +1,5 @@
 var font_families = [];
+var preview_throttle = '';
 
 function setStatus(status, message) {
     var style = {
@@ -45,6 +46,11 @@ function formData() {
 }
 
 function preview() {
+    if (preview_throttle) {
+        preview_throttle = 'is_running_obsolete';
+        return;
+    }
+    preview_throttle = 'is_running';
     $.ajax({
         type:        'POST',
         url:         '/api/text/preview?return_format=json',
@@ -61,7 +67,15 @@ function preview() {
             } else {
                 setStatus('failure', data.messages);
             }
-        }
+        },
+        complete: function() {
+            if (preview_throttle === 'is_running') {
+                preview_throttle = '';
+            } else {
+                preview_throttle = '';
+                preview();
+            }
+        },
     });
 }
 
