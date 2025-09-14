@@ -1,3 +1,5 @@
+'use strict';
+
 var font_families = [];
 var preview_throttle = '';
 
