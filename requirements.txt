@@ -1,0 +1,5 @@
+bottle
+jinja2
+Pillow
+brother_ql
+fontconfig @ https://gitlab.com/ldo/python_fontconfig/-/archive/v0.7/python_fontconfig-v0.7.zip?ref_type=tags

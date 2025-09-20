@@ -4,28 +4,28 @@
 This is a web service to print labels on Brother QL label printers.
 """
 
+import math
 import sys
 import logging
 import random
-import json
 import configparser
 import argparse
 import io
 import base64
 import functools
+import importlib.resources
 
 import PIL.ImageFont
 import PIL.ImageDraw
 import bottle
 import fontconfig
-import pkg_resources
 
 import brother_ql.conversion
 import brother_ql.raster
 
 from .printer import PrinterDevice, PrinterError
 
-TEMPLATE_DIR = [pkg_resources.resource_filename(__name__, 'views')]
+TEMPLATE_DIR = [importlib.resources.files(__package__).joinpath('views')]
 
 ENDLESS_LABELS = (brother_ql.labels.FormFactor.ENDLESS, )
 if hasattr(brother_ql.labels.FormFactor, "PTOUCH_ENDLESS"):
@@ -52,6 +52,7 @@ CONFIG_DEFAULTS = {
         'font': 'Minion Pro:Semibold,Linux Libertine:Regular,DejaVu Serif:Book',
         'font_size': '100',
         'align': 'center',
+        'align_vertical': 'center',
         'margin_top': '24',
         'margin_bottom': '45',
         'margin_left': '35',
@@ -60,25 +61,26 @@ CONFIG_DEFAULTS = {
         'threshold': '70',
         },
     'website': {
-        'static_dir': pkg_resources.resource_filename(__name__, 'static'),
+        'static_dir': importlib.resources.files(__package__).joinpath('static'),
         'static_url': '/static',
         },
     }
 
 PARAMETER_TYPES = {
-    'text':          str,
-    'font_size':     int,
-    'font_index':    int,
-    'label_size':    str,
-    'threshold':     int,
-    'align':         str,
-    'orientation':   str,
-    'copies':        int,
-    'margin_top':    float,
-    'margin_bottom': float,
-    'margin_left':   float,
-    'margin_right':  float,
-    }
+    'text':           str,
+    'font_size':      int,
+    'font_index':     int,
+    'label_size':     str,
+    'threshold':      int,
+    'align':          str,
+    'align_vertical': str,
+    'orientation':    str,
+    'copies':         int,
+    'margin_top':     float,
+    'margin_bottom':  float,
+    'margin_left':    float,
+    'margin_right':   float,
+}
 
 LOGGER = logging.getLogger(__name__)
 
@@ -125,26 +127,11 @@ def render_image(request, printer = None):
     Common function to render a label for preview and printing
     """
 
-    param_types = {
-        'text':          str,
-        'font_size':     int,
-        'font_index':    int,
-        'label_size':    str,
-        'threshold':     int,
-        'align':         str,
-        'orientation':   str,
-        'copies':        int,
-        'margin_top':    float,
-        'margin_bottom': float,
-        'margin_left':   float,
-        'margin_right':  float,
-        }
-
     data = request.params.decode() # UTF-8 decoded form data
 
     context = {}
 
-    for name, datatype in param_types.items():
+    for name, datatype in PARAMETER_TYPES.items():
         context[name] = datatype(data.get(name, DEFAULTS[name]))
 
     for margin in ('margin_top', 'margin_bottom', 'margin_left', 'margin_right'):
@@ -189,8 +176,13 @@ def render_image(request, printer = None):
         lines.append(line or ' ')
     text = '\n'.join(lines)
 
-    (text_width, text_height) = draw.multiline_textsize(text, font=im_font)
+    bbox = draw.multiline_textbbox((0, 0), text, font=im_font, align=context['align'])
+    text_width, text_height = math.ceil(bbox[2] - bbox[0]), math.ceil(bbox[3] - bbox[1])
+    # move anchor to make image start in the top right corner, and add margins
+    horizontal_offset = -bbox[0] + context['margin_left']
+    vertical_offset = -bbox[1] + context['margin_top']
 
+    # compute image size
     if context['orientation'] == 'landscape':
         (height, width) = label.dots_printable
         if label.form_factor in ENDLESS_LABELS:
@@ -203,14 +195,18 @@ def render_image(request, printer = None):
         raise ValueError("Invalid value for parameter 'orientation'. Must " +\
                          "be one of 'portrait' or 'landscape'.")
 
-    vertical_offset = (height - text_height + context['margin_top'] - context['margin_bottom']) // 2
-    horizontal_offset = max((width - text_width) // 2, 0)
-
-    if label.form_factor in ENDLESS_LABELS:
-        if context['orientation'] == 'landscape':
-            vertical_offset = context['margin_top']
-        else:
-            horizontal_offset = context['margin_left']
+    # move image to match horizontal alignment (fallback to "center")
+    horizontal_space_remaining = width - text_width - context['margin_left'] - context['margin_right']
+    if context['align'] == 'right':
+        horizontal_offset += horizontal_space_remaining
+    elif context['align'] != 'left':
+        horizontal_offset += horizontal_space_remaining // 2
+    # move image to match vertical alignment (fallback to "center")
+    vertical_space_remaining = height - text_height - context['margin_top'] - context['margin_bottom']
+    if context['align_vertical'] == 'bottom':
+        vertical_offset += vertical_space_remaining
+    elif context['align_vertical'] != 'top':
+        vertical_offset += vertical_space_remaining // 2
 
     context['image'] = PIL.Image.new('L', (width, height), 'white')
     draw = PIL.ImageDraw.Draw(context['image'])
@@ -238,7 +234,8 @@ def api_text_preview():
                 font_index:int       Font index as returned by /api/config
                 label_size:str       Label size as returned by /api/config
                 threshold:int        Threshold for black and white conversion
-                align:str            "left", "center" or "right"
+                align:str            "left", "center", "right" or "justify"
+                align_vertical:str   "top", "center" or "bottom"
                 orientation:str      "landscape" or "portrait"
                 copies:int           Number of copies to print
                 margin_top:float     Text margin in pixels
@@ -284,7 +281,8 @@ def api_text_print():
                 font_index:int       Font index as returned by /api/config
                 label_size:str       Label size as returned by /api/config
                 threshold:int        Threshold for black and white conversion
-                align:str            "left", "center" or "right"
+                align:str            "left", "center", "right" or "justify"
+                align_vertical:str   "top", "center" or "bottom"
                 orientation:str      "landscape" or "portrait"
                 copies:int           Number of copies to print
                 margin_top:float     Text margin in pixels

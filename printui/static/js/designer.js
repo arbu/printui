@@ -1,4 +1,7 @@
+'use strict';
+
 var font_families = [];
+var preview_throttle = '';
 
 function setStatus(status, message) {
     var style = {
@@ -29,28 +32,27 @@ function onPrinterResponse(data) {
 
 function formData() {
     return {
-        text:        $('#labelText').val(),
-        font_index:  $('#fontStyle option:selected').val(),
-        font_size:   $('#fontSize').val(),
-        label_size:  $('#labelSize option:selected').val(),
-        align:       $('input[name=fontAlign]:checked').val(),
-        orientation: $('input[name=orientation]:checked').val(),
-        copies:      $('#copies').val(),
-        margin_top:    $('#marginTop').val(),
-        margin_bottom: $('#marginBottom').val(),
-        margin_left:   $('#marginLeft').val(),
-        margin_right:  $('#marginRight').val()
+        text:           $('#labelText').val(),
+        font_index:     $('#fontStyle option:selected').val(),
+        font_size:      $('#fontSize').val(),
+        label_size:     $('#labelSize option:selected').val(),
+        align:          $('input:radio[name=fontAlign]:checked').val(),
+        align_vertical: $('input:radio[name=alignVertical]:checked').val(),
+        orientation:    $('input:radio[name=orientation]:checked').val(),
+        copies:         $('#copies').val(),
+        margin_top:     $('#marginTop').val(),
+        margin_bottom:  $('#marginBottom').val(),
+        margin_left:    $('#marginLeft').val(),
+        margin_right:   $('#marginRight').val()
     }
 }
 
 function preview() {
-    if ($('input[name=orientation]:checked').val() == 'portrait') {
-        $('.marginsTopBottom').prop('disabled', false).removeAttr('title');
-        $('.marginsLeftRight').prop('disabled', true).prop('title',  'Only relevant if landscape orientation is selected.');
-    } else {
-        $('.marginsTopBottom').prop('disabled', true).prop('title',  'Only relevant if portrait orientation is selected.');
-        $('.marginsLeftRight').prop('disabled', false).removeAttr('title');
+    if (preview_throttle) {
+        preview_throttle = 'is_running_obsolete';
+        return;
     }
+    preview_throttle = 'is_running';
     $.ajax({
         type:        'POST',
         url:         '/api/text/preview?return_format=json',
@@ -67,7 +69,15 @@ function preview() {
             } else {
                 setStatus('failure', data.messages);
             }
-        }
+        },
+        complete: function() {
+            if (preview_throttle === 'is_running') {
+                preview_throttle = '';
+            } else {
+                preview_throttle = '';
+                preview();
+            }
+        },
     });
 }
 
@@ -89,7 +99,7 @@ function onStatusResponse(data) {
     if (data.success) {
         $('#modelName').text(data.model);
         if(data.label) {
-            for(option of $('#labelSize option').get()) {
+            for(var option of $('#labelSize option').get()) {
                 if(option.value == data.label){
                     $('#labelName').text(option.text);
                     break;
@@ -132,6 +142,7 @@ function updateFontStyles() {
     if(old_style) {
         $('#fontStyle option[text="Regular"]').attr("selected", "selected");
     }
+    preview();
 }
 
 $.ajax({
@@ -171,10 +182,11 @@ $.ajax({
 
         updateFontStyles();
 
-        $('input:radio[name=orientation]').val(data.default_values.orientation);
+        $('input:radio[name=orientation]').val([data.default_values.orientation]);
         $('#fontStyle').val(data.default_values.font_index);
         $('#fontSize').val(data.default_values.font_size);
-        $('input:radio[name=fontAlign]').val(data.default_values.align);
+        $('input:radio[name=fontAlign]').val([data.default_values.align]);
+        $('input:radio[name=alignVertical]').val([data.default_values.align_vertical]);
         $('#marginTop').val(data.default_values.margin_top);
         $('#marginLeft').val(data.default_values.margin_left);
         $('#marginRight').val(data.default_values.margin_right);

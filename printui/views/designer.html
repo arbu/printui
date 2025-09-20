@@ -111,24 +111,47 @@
                       </div>
                     </div>
                     <div class="form-row">
-                      <div class="form-group col-lg-6 mb-0">
+                      <div class="form-group col-lg-6">
                         <label for="fontSize" >Font Size:</label>
                         <input id="fontSize" class="form-control" type="number" min="1" onChange="preview()" required>
                       </div>
+                    </div>
+                    <div class="form-row">
                       <div class="form-group col-lg-6 mb-0">
-                        <label for="fontAlign" class="control-label input-group">Font Alignment:</label>
+                        <label class="control-label input-group">Horizontal Alignment:</label>
                         <div class="btn-group btn-group-toggle" data-toggle="buttons">
                           <label class="btn btn-secondary">
-                            <input type="radio" name="fontAlign" onchange="preview()" value="left" aria-label="Left Align" />
+                            <input type="radio" name="fontAlign" onchange="preview()" value="left" aria-label="Left" />
                             <i class="fas fa-align-left" aria-hidden="true"></i>
                           </label>
                           <label class="btn btn-secondary active">
-                            <input type="radio" name="fontAlign" onchange="preview()" value="center" aria-label="Center Align" />
+                            <input type="radio" name="fontAlign" onchange="preview()" value="center" aria-label="Center" />
                             <i class="fas fa-align-center" aria-hidden="true"></i>
                           </label>
                           <label class="btn btn-secondary">
-                            <input type="radio" name="fontAlign" onchange="preview()" value="right" aria-label="Right Align" />
+                            <input type="radio" name="fontAlign" onchange="preview()" value="right" aria-label="Right" />
                             <i class="fas fa-align-right" aria-hidden="true"></i>
+                          </label>
+                          <label class="btn btn-secondary">
+                            <input type="radio" name="fontAlign" onchange="preview()" value="justify" aria-label="Justify" />
+                            <i class="fas fa-align-justify" aria-hidden="true"></i>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="form-group col-lg-6 mb-0">
+                        <label class="control-label input-group">Vertical Alignment:</label>
+                        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                          <label class="btn btn-secondary">
+                            <input type="radio" name="alignVertical" onchange="preview()" value="top" aria-label="Top" />
+                            <span aria-hidden="true">T</span>
+                          </label>
+                          <label class="btn btn-secondary active">
+                            <input type="radio" name="alignVertical" onchange="preview()" value="center" aria-label="Center" />
+                            <span aria-hidden="true">C</span>
+                          </label>
+                          <label class="btn btn-secondary">
+                            <input type="radio" name="alignVertical" onchange="preview()" value="bottom" aria-label="Bottom" />
+                            <span aria-hidden="true">B</span>
                           </label>
                         </div>
                       </div>
@@ -150,7 +173,7 @@
                       </div>
                       <div class="form-group col-lg-6">
                         <label class="text-center w-100" for="marginTop">Margin Top:</label>
-                        <div class="input-group marginsTopBottom">
+                        <div class="input-group">
                           <input id="marginTop" class="form-control" type="number" min="0" max="200" onChange="preview()" required>
                           <div class="input-group-append">
                             <span class="input-group-text">%</span>
@@ -161,7 +184,7 @@
                     <div class="form-row">
                       <div class="form-group col-lg-6">
                         <label class="text-center w-100" for="marginLeft">Margin Left:</label>
-                        <div class="input-group marginsLeftBottom">
+                        <div class="input-group">
                           <input id="marginLeft" class="form-control" type="number" min="0" max="200" onChange="preview()" required>
                           <div class="input-group-append">
                             <span class="input-group-text">%</span>
@@ -170,7 +193,7 @@
                       </div>
                       <div class="form-group col-lg-6">
                         <label class="text-center w-100" for="marginRight">Margin Right:</label>
-                        <div class="input-group marginsRightBottom">
+                        <div class="input-group">
                           <input id="marginRight" class="form-control" type="number" min="0" max="200" onChange="preview()" required>
                           <div class="input-group-append">
                             <span class="input-group-text">%</span>
@@ -183,7 +206,7 @@
                       </div>
                       <div class="form-group col-lg-6">
                         <label class="text-center w-100" for="marginBottom">Margin Bottom:</label>
-                        <div class="input-group marginsBottomBottom">
+                        <div class="input-group">
                           <input id="marginBottom" class="form-control" type="number" min="0" max="200" onChange="preview()" required>
                           <div class="input-group-append">
                             <span class="input-group-text">%</span>
