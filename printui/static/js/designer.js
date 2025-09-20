@@ -99,7 +99,7 @@ function onStatusResponse(data) {
     if (data.success) {
         $('#modelName').text(data.model);
         if(data.label) {
-            for(option of $('#labelSize option').get()) {
+            for(var option of $('#labelSize option').get()) {
                 if(option.value == data.label){
                     $('#labelName').text(option.text);
                     break;
