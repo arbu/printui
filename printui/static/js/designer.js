@@ -60,12 +60,7 @@ function preview() {
         data:        formData(),
         success: function(data) {
             if(data.success) {
-                $('#previewImg').attr('src', 'data:image/png;base64,' + data.image);
-                var img = $('#previewImg')[0];
-                img.onload = function() {
-                    $('#labelWidth').html( (img.naturalWidth /300*2.54).toFixed(1));
-                    $('#labelHeight').html((img.naturalHeight/300*2.54).toFixed(1));
-                };
+                updatePreviewOverlay(data.image, data.label);
             } else {
                 setStatus('failure', data.messages);
             }
@@ -79,6 +74,65 @@ function preview() {
             }
         },
     });
+}
+
+function updatePreviewOverlay(imageBase64, labelInfo) {
+    var imgW_mm = labelInfo.printable_mm[0];
+    var imgH_mm = labelInfo.printable_mm[1];
+
+    var orientation = $('input:radio[name=orientation]:checked').val() || 'portrait';
+    var landscape = orientation === 'landscape';
+
+    // Physical footprint on the tray: tape-width x feed-length (mm).
+    var physW_mm = landscape ? imgH_mm : imgW_mm;
+    var physH_mm = landscape ? imgW_mm : imgH_mm;
+
+    $('#labelWidth').html(physW_mm.toFixed(1));
+    $('#labelHeight').html(physH_mm.toFixed(1));
+
+    var formFactor = (labelInfo && labelInfo.form_factor) || 'ENDLESS';
+    var formClass = {
+        'ENDLESS':       'endless',
+        'DIE_CUT':       'die-cut',
+        'ROUND_DIE_CUT': 'round'
+    }[formFactor] || 'endless';
+
+    // Carrier border and position come from the form-factor class; layout
+    // helpers (position, flex, rounded corners) use Bootstrap utilities.
+    var $label = $('#previewLabel');
+    var $img = $('#previewLabelImg');
+    $img.attr('src', 'data:image/png;base64,' + imageBase64);
+
+    $label
+        .removeClass('endless die-cut round landscape rounded-circle d-flex align-items-center justify-content-center')
+        .addClass(formClass)
+        .toggleClass('landscape', landscape)
+        .toggleClass('rounded-circle', formFactor === 'ROUND_DIE_CUT')
+        .toggleClass('d-flex align-items-center justify-content-center', landscape);
+    $img.toggleClass('rounded-circle', formFactor === 'ROUND_DIE_CUT');
+
+    $img.css({
+        width: 'calc(var(--mm) * ' + imgW_mm + ')',
+        height: 'calc(var(--mm) * ' + imgH_mm + ')'
+    });
+
+    // Rotated content can't shrink-wrap, so landscape sizes the carrier
+    // explicitly. Endless tape has no top/bottom carrier border.
+    if (landscape) {
+        var carrierPad = (formFactor === 'ENDLESS') ? 0 : 4;
+        $label.css({
+            width: 'calc(var(--mm) * ' + (physW_mm + 4) + ')',
+            height: 'calc(var(--mm) * ' + (physH_mm + carrierPad) + ')'
+        });
+    } else {
+        $label.css({ width: '', height: '' });
+    }
+
+    // Reserve space below the 50mm chute for labels longer than the tray.
+    var carrierTopMm = (formFactor === 'ENDLESS') ? 11.333 : 9.333;
+    var carrierHeightMm = physH_mm + ((formFactor === 'ENDLESS') ? 0 : 4);
+    var overflowMm = Math.max(0, carrierTopMm + carrierHeightMm + 2 - 50);
+    $('#previewChute').css('margin-bottom', 'calc(var(--mm) * ' + overflowMm + ')');
 }
 
 function print() {

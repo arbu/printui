@@ -18,6 +18,38 @@
       .card-header[data-toggle="collapse"] {
         cursor: pointer;
       }
+      /* The chute scales with the card body. It is drawn at 3 units per mm
+         (viewBox 242 x 150), so the chute is 80.667mm wide and 50mm tall.
+         --mm is that "millimetre" expressed in container-width units. */
+      #previewFrame {
+        container-type: inline-size;
+      }
+      #previewChute {
+        width: 100cqw;
+        aspect-ratio: 242 / 150;
+        background: url('/static/img/printer-chute.svg') no-repeat top center;
+        background-size: 100% 100%;
+        --mm: calc(100cqw / 80.667);
+      }
+      /* The label (sticker) with its carrier sheet. The carrier is the beige
+         padding; its style and position are selected by CSS class. */
+      #previewLabel {
+        background: #f2e6d0;
+      }
+      #previewLabel.endless {
+        top: calc(var(--mm) * 11.333);   /* tray top */
+        right: calc(var(--mm) * 7.333);  /* 4mm from tray right, minus the 2mm carrier */
+        padding: 0 calc(var(--mm) * 2);  /* carrier visible only left/right */
+      }
+      #previewLabel.die-cut,
+      #previewLabel.round {
+        top: calc(var(--mm) * 9.333);
+        right: calc(var(--mm) * 7.333);
+        padding: calc(var(--mm) * 2);    /* carrier visible on all sides */
+      }
+      #previewLabel.landscape #previewLabelImg {
+        transform: rotate(90deg);
+      }
     </style>
 
     <title>Label Designer | Brother QL</title>
@@ -143,15 +175,15 @@
                         <div class="btn-group btn-group-toggle" data-toggle="buttons">
                           <label class="btn btn-secondary">
                             <input type="radio" name="alignVertical" onchange="preview()" value="top" aria-label="Top" />
-                            <span aria-hidden="true">T</span>
+                            <i class="fas fa-align-left fa-rotate-90" aria-hidden="true"></i>
                           </label>
                           <label class="btn btn-secondary active">
                             <input type="radio" name="alignVertical" onchange="preview()" value="center" aria-label="Center" />
-                            <span aria-hidden="true">C</span>
+                            <i class="fas fa-align-center fa-rotate-90" aria-hidden="true"></i>
                           </label>
                           <label class="btn btn-secondary">
                             <input type="radio" name="alignVertical" onchange="preview()" value="bottom" aria-label="Bottom" />
-                            <span aria-hidden="true">B</span>
+                            <i class="fas fa-align-right fa-rotate-90" aria-hidden="true"></i>
                           </label>
                         </div>
                       </div>
@@ -246,9 +278,14 @@
               </h5>
             </div>
             <div class="card-body">
-              <img id="previewImg" style="border: 1px solid #444; max-height: 350px; width: auto; max-width: 100%; margin-bottom: 10px;"/>
-              <br />
-              Printed size w/o margins: <span id="labelWidth">?</span> cm x <span id="labelHeight">?</span> cm
+              <div id="previewFrame">
+                <div id="previewChute" class="position-relative">
+                  <div id="previewLabel" class="position-absolute">
+                    <img id="previewLabelImg" class="d-block" alt="">
+                  </div>
+                </div>
+              </div>
+              Label size w/o margins: <span id="labelWidth">?</span> mm &times; <span id="labelHeight">?</span> mm
             </div>
           </div>
           <fieldset class="formgroup mb-3">

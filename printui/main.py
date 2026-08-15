@@ -31,6 +31,9 @@ ENDLESS_LABELS = (brother_ql.labels.FormFactor.ENDLESS, )
 if hasattr(brother_ql.labels.FormFactor, "PTOUCH_ENDLESS"):
     ENDLESS_LABELS += (brother_ql.labels.FormFactor.PTOUCH_ENDLESS, )
 
+NO_DEVICE_MESSAGE = ('No printer device configured or found. '
+                    'Printing is unavailable, but the web UI is still usable.')
+
 CONFIG_DEFAULTS = {
     'server': {
         },
@@ -139,12 +142,24 @@ def render_image(request, printer = None):
 
     if context['label_size'] == 'auto':
         if not printer:
-            with PrinterDevice(DEVICE) as printer_instance:
-                label = printer_instance.info()[1]
+            if DEVICE:
+                with PrinterDevice(DEVICE) as printer_instance:
+                    label = printer_instance.info()[1]
+            else:
+                LOGGER.info('No device found; using the first die-cut label size for the preview.')
+                label = None
+                for label_item in brother_ql.labels.ALL_LABELS:
+                    if label_item.form_factor not in ENDLESS_LABELS:
+                        label = label_item
+                        break
+                if label is None:
+                    label = brother_ql.labels.ALL_LABELS[0]
         else:
             label = printer.info()[1]
         if not label:
             context['image'] = PIL.Image.new('L', (1, 1), 'white')
+            context['label_form_factor'] = None
+            context['label_tape_size'] = None
             return context
         context['label_size'] = label.identifier
     else:
@@ -154,6 +169,9 @@ def render_image(request, printer = None):
                 break
         else: # no label did match
             raise LookupError("Unknown label_size: {}".format(context['label_size']))
+
+    context['label_form_factor'] = label.form_factor.name
+    context['label_tape_size'] = list(label.tape_size)
 
     if context['copies'] < 1 or context['copies'] > 20:
         raise ValueError("The number of copies is limited to 20.")
@@ -257,9 +275,21 @@ def api_text_preview():
     image_buffer.seek(0)
 
     if return_format == 'json':
+        # The PNG is rendered at 300 dpi, so convert its pixel size to mm
+        # here. The frontend can then use physical units directly.
+        printable_mm = [
+            round(context['image'].size[0] / 300 * 25.4, 2),
+            round(context['image'].size[1] / 300 * 25.4, 2),
+            ]
         return {
             'success': True,
             'image': base64.b64encode(image_buffer.read()).decode('utf-8'),
+            'label': {
+                'identifier': context.get('label_size'),
+                'form_factor': context.get('label_form_factor'),
+                'tape_size': context.get('label_tape_size'),
+                'printable_mm': printable_mm,
+                },
             }
     if return_format == 'png':
         bottle.response.set_header('Content-type', 'image/png')
@@ -292,6 +322,9 @@ def api_text_print():
 
     returns: JSON
     """
+    if not DEVICE:
+        return {'success': False, 'messages': [NO_DEVICE_MESSAGE]}
+
     with PrinterDevice(DEVICE) as printer:
         context = render_image(bottle.request, printer)
 
@@ -349,6 +382,9 @@ def api_status():
 
     returns: JSON
     """
+    if not DEVICE:
+        return {'success': False, 'messages': [NO_DEVICE_MESSAGE]}
+
     with PrinterDevice(DEVICE) as printer:
         (model, label) = printer.info()
 
@@ -366,6 +402,8 @@ def main():
                         help="Configuration file to load.")
     parser.add_argument('-d', '--debug', action='store_true',
                         help="Set loglevel to debug and enable additional output.")
+    parser.add_argument('--development', action='store_true',
+                        help="Run without a printer device. Useful for developing the web UI.")
     args = parser.parse_args()
 
     config = configparser.ConfigParser()
@@ -397,11 +435,16 @@ def main():
             devices_found += factory['list_available_devices']()
 
         if not devices_found:
-            LOGGER.critical("No device specified and discovery failed. Exiting!")
-            sys.exit(2)
-
-        DEVICE = devices_found[0]['identifier']
-        LOGGER.info("No device specified. Selecting %s", DEVICE)
+            if args.development:
+                LOGGER.warning("No device specified and discovery failed. "
+                               "Running in development mode without a printer.")
+                DEVICE = None
+            else:
+                LOGGER.critical("No device specified and discovery failed. Exiting!")
+                sys.exit(2)
+        else:
+            DEVICE = devices_found[0]['identifier']
+            LOGGER.info("No device specified. Selecting %s", DEVICE)
 
     if config['fonts'].getboolean('system_fonts'):
         fontconfig_instance = fontconfig.Config.get_current()

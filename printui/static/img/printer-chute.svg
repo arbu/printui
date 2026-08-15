@@ -1,0 +1,69 @@
+<svg id="printer-chute" xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="242" height="150" viewBox="0 0 242 150"
+     role="img" aria-label="Front view of the Brother QL label printer output tray">
+  <title>Brother QL printer output tray (front view)</title>
+  <desc>A reference illustration of the label output tray of a Brother QL label printer.
+        The tray is 70 mm wide and 30 mm deep and sits flush inside the printer casing.
+        The label is overlaid by the web UI and may extend below the casing.</desc>
+
+  <defs>
+    <linearGradient id="faceGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5c6269"/>
+      <stop offset="0.5" stop-color="#4a5057"/>
+      <stop offset="1" stop-color="#2c3035"/>
+    </linearGradient>
+    <linearGradient id="trayGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1e22"/>
+      <stop offset="1" stop-color="#090a0b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- printer casing (the tray is recessed into it) -->
+  <rect id="casing" x="0" y="0" width="242" height="138" rx="10"
+        fill="url(#faceGrad)" stroke="#1d2024" stroke-width="1"/>
+  <rect id="faceSheen" x="2" y="2" width="238" height="12" rx="6"
+        fill="#ffffff" opacity="0.05"/>
+  <line id="casingBottomLip" x1="4" y1="135.5" x2="238" y2="135.5"
+        stroke="#565d64" stroke-width="1" opacity="0.35"/>
+
+  <text x="10" y="20" font-family="Lato, 'Helvetica Neue', Arial, sans-serif"
+        font-size="8" font-weight="bold" fill="#cfd4d8">Brother QL</text>
+
+  <circle id="led" cx="230" cy="17" r="3" fill="#2f9e63"/>
+  <circle id="ledRing" cx="230" cy="17" r="5" fill="none" stroke="#202327" stroke-width="1"/>
+
+  <!-- feed direction: downwards through the exit slot -->
+  <g id="feedArrow" transform="translate(121 5)" stroke="#aeb4ba" fill="#aeb4ba">
+    <line x1="0" y1="0" x2="0" y2="11" stroke-width="2"/>
+    <polygon points="-3.5,8 3.5,8 0,14"/>
+  </g>
+
+  <!-- exit slot where the label leaves the printer -->
+  <rect id="slot" x="16" y="26" width="210" height="8" rx="2"
+        fill="#0a0b0c" stroke="#0e1012" stroke-width="1"/>
+  <line id="slotLip" x1="16" y1="26.5" x2="226" y2="26.5"
+        stroke="#7a8087" stroke-width="1" opacity="0.8"/>
+
+  <!-- output tray recess: 70 mm wide, 30 mm deep -->
+  <rect id="tray" x="16" y="34" width="210" height="90" rx="5"
+        fill="url(#trayGrad)" stroke="#0e1012" stroke-width="1"/>
+
+  <!-- tiny rails that lift the label off the tray surface -->
+  <g id="trayRails" stroke="#454b52" stroke-width="1" opacity="0.45">
+    <line x1="41" y1="40" x2="41" y2="120"/>
+    <line x1="73" y1="40" x2="73" y2="120"/>
+    <line x1="105" y1="40" x2="105" y2="120"/>
+    <line x1="137" y1="40" x2="137" y2="120"/>
+    <line x1="169" y1="40" x2="169" y2="120"/>
+    <line x1="201" y1="40" x2="201" y2="120"/>
+  </g>
+
+  <!-- tray side walls -->
+  <line id="trayWallL" x1="17" y1="38" x2="17" y2="120" stroke="#040506" stroke-width="1" opacity="0.7"/>
+  <line id="trayWallR" x1="225" y1="38" x2="225" y2="120" stroke="#040506" stroke-width="1" opacity="0.7"/>
+
+  <!-- tray floor and front lip -->
+  <line id="trayFloor" x1="20" y1="120.5" x2="222" y2="120.5" stroke="#050607" stroke-width="1" opacity="0.9"/>
+  <line id="trayFrontLip" x1="18" y1="123" x2="224" y2="123" stroke="#3a4046" stroke-width="1" opacity="0.8"/>
+</svg>
